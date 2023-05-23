@@ -1,10 +1,10 @@
 
 from flask import Flask, request, render_template, send_from_directory, redirect
-from flask_cors import CORS, cross_origin
+
 import os
 
 app = Flask(__name__)
-CORS(app)
+
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 
