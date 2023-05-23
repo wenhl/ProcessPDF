@@ -10,13 +10,9 @@ What have I done?
 
 
 How to run this app?
->brew install python
-
->pip install FLASK
-
->python -m venv PDFenv
-
->source PDFenv/bin/activate
-
->python app.py
- 
+1. brew install python
+2. pip install FLASK
+3. python -m venv PDFenv
+4. source PDFenv/bin/activate
+5. python app.py
+6. go to browswer http://127.0.0.1:4555
