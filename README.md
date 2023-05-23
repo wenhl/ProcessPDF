@@ -9,5 +9,5 @@ How to run?
 
 >source PDFenv/bin/activate
 
-python app.py
+>python app.py
  
