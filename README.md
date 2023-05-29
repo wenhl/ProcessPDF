@@ -26,3 +26,4 @@ Bugs needs to be fixed: the highlighted position is incorrect.
 
 Other Info:
 https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions
+https://stackoverflow.com/questions/33063213/pdf-js-with-text-selection
