@@ -23,3 +23,6 @@ pdfapp.py adds pagination, if the line contains the word 'boss', it will highlig
 2. go to browswer http://127.0.0.1:5000
 
 Bugs needs to be fixed: the highlighted position is incorrect.
+
+Other Info:
+https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions
