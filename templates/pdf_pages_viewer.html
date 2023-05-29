@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Viewer</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='pdfjs/web/viewer.css') }}">
+    <style>
+        canvas.highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        canvas.pdf-content {
+            border: 1px solid red; /* Added border style */
+        }
+        .text-layer-container {
+            position: relative;
+            display: inline-block;
+        }
+        .text-layer {
+            border: 2px solid green; /* Added green border style */
+        }
+    </style>
+    <script src="{{ url_for('static', filename='pdfjs/build/pdf.js') }}"></script>
+</head>
+<body>
+    <h1>PDF Viewer</h1>
+    <div id="pdf-container"></div>
+    <div id="pagination-container">
+        <button id="prev-page">Previous</button>
+        <span id="current-page"></span>
+        <button id="next-page">Next</button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('pdf-container');
+            const prevButton = document.getElementById('prev-page');
+            const nextButton = document.getElementById('next-page');
+            const currentPageSpan = document.getElementById('current-page');
+            const pdfPath = "{{ pdf_path }}";
+            let currentPage = 1;
+            let pdfInstance = null;
+
+            function highlightSelectedArea(canvas, startX, startY, endX, endY) {
+                // Highlight the selected area
+                const context = canvas.getContext('2d');
+                context.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                context.fillRect(startX, startY, endX - startX, endY - startY);
+            }
+
+            function highlightLinesContainingWord(page, viewport, canvas, context) {
+                page.getTextContent().then(function(textContent) {
+                    console.log('Text content retrieved successfully.');
+
+                    const lines = [];
+                    textContent.items.forEach(function(item) {
+                        const str = item.str;
+                        const transform = item.transform;
+                        const y = transform[5];
+
+                        if (lines.length === 0 || y !== lines[lines.length - 1].y) {
+                            lines.push({ y: y, text: str, items: [item] });
+                        } else {
+                            lines[lines.length - 1].text += ' ' + str;
+                            lines[lines.length - 1].items.push(item);
+                        }
+                    });
+
+                    let count = 0;
+                    lines.forEach(function(line) {
+                        const regex = /boss/gi;
+                        let match = regex.exec(line.text);
+
+                        if (match) {
+                            count++;
+
+                            const firstTextItem = line.items[0];
+                            const lastTextItem = line.items[line.items.length - 1];
+
+                            const startTransform = pdfjsLib.Util.transform(
+                                viewport.transform,
+                                firstTextItem.transform
+                            );
+                            const endTransform = pdfjsLib.Util.transform(
+                                viewport.transform,
+                                lastTextItem.transform
+                            );
+
+                            const startX = startTransform[4];
+                            const startY = canvas.height - startTransform[5] - lastTextItem.height;
+                            const endX = endTransform[4] + lastTextItem.width;
+                            const endY = canvas.height - endTransform[5];
+
+                            context.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                            context.fillRect(startX, startY, endX - startX, endY - startY);
+
+                            console.log(count, 'Matched Line content:', line.text);
+                            console.log('Highlighted text:', line.text);
+                            console.log('Text items:', line.items);
+
+                            console.log(`Highlighted ${count} instances of the word "employee".`);
+                        }
+                    });
+                });
+            }
+
+            function renderPage(page) {
+                // Clear the container
+                container.innerHTML = '';
+
+                const viewport = page.getViewport({ scale: 1 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                container.appendChild(canvas);
+
+                // Add event listener for mouse down on the PDF page canvas
+                canvas.addEventListener('mousedown', function(event) {
+                    startX = event.clientX - container.offsetLeft - canvas.offsetLeft;
+                    startY = event.clientY - container.offsetTop - canvas.offsetTop;
+                });
+
+                // Add event listener for mouse up on the PDF page canvas
+                canvas.addEventListener('mouseup', function(event) {
+                    endX = event.clientX - container.offsetLeft - canvas.offsetLeft;
+                    endY = event.clientY - container.offsetTop - canvas.offsetTop;
+
+                    // Highlight the selected area
+                    highlightSelectedArea(canvas, startX, startY, endX, endY);
+
+                    // Highlight the lines containing the word "employee"
+                    highlightLinesContainingWord(page, viewport, canvas, context);
+
+                    // Reset the start and end coordinates
+                    startX = startY = endX = endY = 0;
+                });
+
+                // Render the PDF content on the canvas
+                page.render({ canvasContext: context, viewport: viewport }).promise.then(function() {
+                    console.log('PDF content rendered on the canvas.');
+                    // Highlight the lines containing the word "employee"
+                    highlightLinesContainingWord(page, viewport, canvas, context);
+                }).catch(function(error) {
+                    console.error('Error rendering PDF:', error);
+                });
+            }
+
+            function goToPage(pageNum) {
+                if (pageNum >= 1 && pageNum <= pdfInstance.numPages) {
+                    currentPage = pageNum;
+                    currentPageSpan.textContent = currentPage;
+                    pdfInstance.getPage(currentPage).then(renderPage);
+                }
+            }
+
+            function goToPreviousPage() {
+                goToPage(currentPage - 1);
+            }
+
+            function goToNextPage() {
+                goToPage(currentPage + 1);
+            }
+
+            // Load the PDF and initialize the viewer
+            const loadingTask = pdfjsLib.getDocument(pdfPath);
+            loadingTask.promise.then(function(pdf) {
+                console.log('PDF loaded successfully.');
+                pdfInstance = pdf;
+                const totalPages = pdf.numPages;
+                const initialPage = 1;
+                currentPageSpan.textContent = initialPage + ' / ' + totalPages;
+                goToPage(initialPage);
+
+                // Pagination event listeners
+                prevButton.addEventListener('click', goToPreviousPage);
+                nextButton.addEventListener('click', goToNextPage);
+            });
+        });
+    </script>
+</body>
+</html>
